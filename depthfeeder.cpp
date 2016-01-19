@@ -1,5 +1,4 @@
 #include <arpa/inet.h>
-#include <cmath>
 #include <curl/curl.h>
 #include <pthread.h>
 #include <signal.h>
