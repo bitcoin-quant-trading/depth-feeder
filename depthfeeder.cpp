@@ -17,16 +17,14 @@ static size_t curlWriteFunc(const char *ptr, size_t size, size_t nmemb, std::str
     return len;
 }
 
-static std::string curlHttp(std::string url, void *postData, std::string header, int timeOut)
+static std::string curlHttp(const std::string &url, void *postData, const std::string &header, int timeOut)
 {
     std::string content;
 
     CURL *curl = curl_easy_init();
     std::string useragent = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:13.0) Gecko/20100101 Firefox/13.0.1";
 
-    url = std::string("https://") + url;
-
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_URL, (std::string("https://") + url).c_str());
     curl_easy_setopt(curl, CURLOPT_USERAGENT, useragent.c_str());
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -137,7 +135,7 @@ int main(int argc, const char *argv[])
 {
     struct itimerval tmval;
 
-    if (argc < 2) {
+    if (argc < 3) {
         printf("Usage: %s [okcoin|huobi] [dest ip addr]\n", argv[0]);
         return 0;
     }
