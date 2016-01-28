@@ -68,6 +68,9 @@ static long long lastTs = 0;
 static std::string url;
 static int sock_fd;
 static struct sockaddr_in addr_dest;
+static double ok_ask = 0.0, ok_bid = 0.0;
+static bool isHuobi = false;
+static long long lastRefTs = 0;
 
 #define DEST_PORT   8300
 #define MAX_DEPTH   1024
@@ -113,11 +116,39 @@ static void *depthThread(void *arg)
             depthPack[n++] = bids[i][0].asDouble();
             depthPack[n++] = bids[i][1].asDouble();
         }
+        if (isHuobi) {
+            depthPack[n++] = ok_ask;
+            depthPack[n++] = ok_bid;
+        }
         sendto(sock_fd, depthPack, sizeof(double) * n, 0, (const sockaddr *)&addr_dest, sizeof(addr_dest));
-        printf("Depth sent: %lld, %.2lf, %.2lf\n", ts, ask, bid);
+        if (!isHuobi)
+            printf("Depth sent: %lld, %.2lf, %.2lf\n", ts, ask, bid);
+        else
+            printf("Depth sent: %lld, %.2lf, %.2lf, %.2lf, %.2lf\n", ts, ask, bid, ok_ask, ok_bid);
     }
 
     pthread_mutex_unlock(&mutex);
+
+    return NULL;
+}
+
+static void *refThread(void *arg)
+{
+    pthread_detach(pthread_self());
+
+    long long ts = timestamp();
+    std::string content = curlHttp("www.okcoin.cn/api/v1/ticker.do?symbol=btc_cny", NULL, "", 1000);
+
+    Json::Reader reader;
+    Json::Value value;
+    if ((ts > lastRefTs) && reader.parse(content, value)) {
+        lastRefTs = ts;
+        value = value["ticker"];
+        if (value.empty())
+            return NULL;
+        ok_ask = atof(value["sell"].asString().c_str());
+        ok_bid = atof(value["buy"].asString().c_str());
+    }
 
     return NULL;
 }
@@ -127,6 +158,10 @@ static void sigroutine(int signo){
     switch (signo){
     case SIGALRM:
         pthread_create(&thread, NULL, depthThread, NULL);
+        if (isHuobi) {
+            pthread_t thread1;
+            pthread_create(&thread1, NULL, refThread, NULL);
+        }
         break;
     }
 }
@@ -146,6 +181,7 @@ int main(int argc, const char *argv[])
     } else if (!strcmp(argv[1], "huobi")) {
         printf("Selected source: huobi\n");
         url = "api.huobi.com/staticmarket/depth_btc_json.js";
+        isHuobi = true;
     } else {
         printf("Please choose source, okcoin (default) or houbi.\n");
         return 0;
