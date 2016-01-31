@@ -77,7 +77,7 @@ static long long lastRefTs = 0;
 
 static void *depthThread(void *arg)
 {
-    double depthPack[MAX_DEPTH * 4 + 3];
+    double depthPack[MAX_DEPTH * 4 + 5];
 
     pthread_detach(pthread_self());
 
