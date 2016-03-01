@@ -83,6 +83,13 @@ static void *depthThread(void *arg)
 
     long long ts = timestamp();
     std::string content = curlHttp(url, NULL, "", 1000);
+    if (isHuobi) {
+        if (content.find("\"btccny\"") == std::string::npos) {
+            size_t p = content.find("btccny");
+            if (p != std::string::npos)
+                content.replace(p, 6, "\"btccny\"");
+        }
+    }
 
     pthread_mutex_lock(&mutex);
 
